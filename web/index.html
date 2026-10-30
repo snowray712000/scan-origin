@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="token" content="__TOKEN__">
+<title>scan-origin</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>scan-origin</h1>
+  <span id="root" class="muted"></span>
+  <button id="refresh" type="button">重新整理</button>
+</header>
+<main>
+  <div id="error" class="banner error" hidden></div>
+
+  <section>
+    <h2>Dataset 目前狀態</h2>
+    <div id="tiles" class="tiles"></div>
+  </section>
+
+  <section>
+    <h2>各上傳日期</h2>
+    <table id="days">
+      <thead><tr><th>上傳日期</th><th class="num">IOS</th><th class="num">Die</th><th class="num">小計</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p id="daysEmpty" class="muted" hidden>還沒有整理好的資料。</p>
+  </section>
+
+  <section>
+    <h2>待處理</h2>
+    <ul id="pendingList" class="plain"></ul>
+    <p id="pendingEmpty" class="muted" hidden>沒有待處理的上傳。</p>
+    <button id="previewBtn" type="button" class="primary">預覽整理結果</button>
+  </section>
+
+  <section id="planSection" hidden>
+    <h2>整理預覽</h2>
+    <p id="planSummary"></p>
+    <table id="planTable">
+      <thead><tr><th>批次</th><th>Case</th><th>判定</th><th>依據 / 備註</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p id="planIgnored" class="muted" hidden></p>
+    <div class="actions">
+      <button id="applyBtn" type="button" class="primary">確認執行（移動資料夾）</button>
+      <button id="cancelBtn" type="button">取消</button>
+    </div>
+  </section>
+
+  <section id="resultSection" hidden>
+    <h2>執行結果</h2>
+    <p id="resultSummary"></p>
+    <ul id="resultErrors" class="plain error-list"></ul>
+  </section>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>
