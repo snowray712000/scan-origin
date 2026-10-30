@@ -2,4 +2,4 @@
 package version
 
 // Version is three-part semver (npm only accepts formal versions).
-const Version = "0.1.0"
+const Version = "1.1.1"
