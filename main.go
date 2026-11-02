@@ -12,7 +12,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 
+	"scanorigin/internal/dataset"
 	"scanorigin/internal/server"
 	"scanorigin/internal/version"
 )
@@ -42,13 +44,55 @@ func lanAddrs() []string {
 	return out
 }
 
+// printTree lists the folder structure to stdout (or outFile), then sends it to
+// the clipboard of the terminal's machine via OSC 52 when stdout is a terminal.
+// Messages go to stderr so that redirecting stdout stays clean.
+func printTree(root string, opt dataset.TreeOptions, outFile string, copyIt bool) error {
+	text, err := dataset.Tree(root, opt)
+	if err != nil {
+		return err
+	}
+	if outFile != "" {
+		if err := os.WriteFile(outFile, []byte(text), 0o644); err != nil {
+			return err
+		}
+		fmt.Fprintln(os.Stderr, "已寫入", outFile)
+	} else {
+		fmt.Print(text)
+	}
+	if !copyIt {
+		return nil
+	}
+	fi, err := os.Stdout.Stat()
+	if err != nil || fi.Mode()&os.ModeCharDevice == 0 {
+		fmt.Fprintln(os.Stderr, "stdout 不是終端機，未送剪貼簿")
+		return nil
+	}
+	seq, ok := osc52(text)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "清單太大（%d KB），超過剪貼簿上限，未送出；請加 -depth / -sample / -dirs-only 縮小，或用 -o 存檔\n", len(text)/1024)
+		return nil
+	}
+	fmt.Print(seq)
+	fmt.Fprintf(os.Stderr, "已送出剪貼簿（OSC 52）：%d 行、約 %d KB。若貼上是空的，表示終端機不支援（tmux 需 set -g set-clipboard on）\n",
+		strings.Count(text, "\n"), (len(text)+1023)/1024)
+	return nil
+}
+
 func main() {
 	host := flag.String("host", "0.0.0.0", "address to listen on (127.0.0.1 = this machine only)")
 	port := flag.Int("port", defaultPort, "port (if not given and busy, a free one is picked)")
 	noOpen := flag.Bool("no-open", false, "do not open the browser on this machine")
 	showVersion := flag.Bool("version", false, "print the version and exit")
+	tree := flag.Bool("tree", false, "print the file structure (names only) of the folder, send it to the clipboard via OSC 52, and exit")
+	depth := flag.Int("depth", 0, "with -tree: list at most N levels (0 = all)")
+	sample := flag.Int("sample", 0, "with -tree: list at most N entries per folder (0 = all)")
+	dirsOnly := flag.Bool("dirs-only", false, "with -tree: list folders only")
+	treeOut := flag.String("o", "", "with -tree: write the tree to this file instead of stdout")
+	noCopy := flag.Bool("no-copy", false, "with -tree: do not send the tree to the clipboard")
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: scan-origin [-host ADDR] [-port N] [-no-open] [-version] [dataset資料夾，預設為目前資料夾]")
+		fmt.Fprintln(os.Stderr, "       scan-origin -tree [-depth N] [-sample N] [-dirs-only] [-o FILE] [-no-copy] [資料夾]")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -72,7 +116,29 @@ func main() {
 	}
 
 	portSet := false
-	flag.Visit(func(f *flag.Flag) { portSet = portSet || f.Name == "port" })
+	treeOnly := false // a -tree companion flag was given
+	flag.Visit(func(f *flag.Flag) {
+		portSet = portSet || f.Name == "port"
+		switch f.Name {
+		case "depth", "sample", "dirs-only", "o", "no-copy":
+			treeOnly = true
+		}
+	})
+	if treeOnly && !*tree {
+		fmt.Fprintln(os.Stderr, "-depth / -sample / -dirs-only / -o / -no-copy 需搭配 -tree")
+		os.Exit(2)
+	}
+	if *tree {
+		if *depth < 0 || *sample < 0 {
+			fmt.Fprintln(os.Stderr, "-depth 與 -sample 不可為負數")
+			os.Exit(2)
+		}
+		if err := printTree(root, dataset.TreeOptions{MaxDepth: *depth, DirsOnly: *dirsOnly, Sample: *sample}, *treeOut, !*noCopy); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	ln, err := net.Listen("tcp", net.JoinHostPort(*host, strconv.Itoa(*port)))
 	if err != nil && !portSet {
 		ln, err = net.Listen("tcp", net.JoinHostPort(*host, "0"))
