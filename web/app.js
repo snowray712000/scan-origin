@@ -156,6 +156,34 @@ function renderResult(r) {
 
 $('refresh').addEventListener('click', refresh);
 
+// The token travels in a header, so a plain link cannot download: fetch the
+// file as a blob and click a temporary link.
+$('exportBtn').addEventListener('click', async () => {
+  const b = $('exportBtn');
+  b.disabled = true;
+  try {
+    showError(null);
+    const r = await fetch('/api/export.xlsx', { headers: { 'X-Token': token } });
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      throw new Error(j.error || ('HTTP ' + r.status));
+    }
+    const m = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '');
+    const url = URL.createObjectURL(await r.blob());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = m ? m[1] : 'scan-origin.xlsx';
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (e) {
+    showError(e);
+  } finally {
+    b.disabled = false;
+  }
+});
+
 $('previewBtn').addEventListener('click', async () => {
   try {
     showError(null);

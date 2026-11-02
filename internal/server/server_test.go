@@ -88,3 +88,16 @@ func TestPlanThenApply(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestExportXLSX(t *testing.T) {
+	s, h := newTest(t)
+	if w := do(h, "GET", "/api/export.xlsx", nil); w.Code != 403 {
+		t.Errorf("no token: %d", w.Code)
+	}
+	ok := map[string]string{"X-Token": s.Token(), "Content-Type": "application/json"}
+	w := do(h, "GET", "/api/export.xlsx", ok)
+	if w.Code != 200 || !strings.HasPrefix(w.Body.String(), "PK") ||
+		!strings.Contains(w.Header().Get("Content-Disposition"), "attachment; filename=\"scan-origin-") {
+		t.Errorf("export: %d %q", w.Code, w.Header())
+	}
+}

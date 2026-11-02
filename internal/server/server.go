@@ -4,6 +4,7 @@
 package server
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
@@ -11,6 +12,7 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
+	"time"
 
 	"scanorigin/internal/dataset"
 	"scanorigin/internal/version"
@@ -45,6 +47,7 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("GET /api/state", s.api(s.handleState))
 	mux.HandleFunc("GET /api/teeth", s.api(s.handleTeeth))
+	mux.HandleFunc("GET /api/export.xlsx", s.api(s.handleExport))
 	mux.HandleFunc("POST /api/plan", s.api(s.handlePlan))
 	mux.HandleFunc("POST /api/apply", s.api(s.handleApply))
 	return s.guard(mux)
@@ -130,6 +133,21 @@ func (s *Server) handleTeeth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, t)
+}
+
+// handleExport builds the workbook in memory first, so a scan error can still
+// be reported as JSON instead of a broken download.
+func (s *Server) handleExport(w http.ResponseWriter, r *http.Request) {
+	var buf bytes.Buffer
+	if err := dataset.ExportXLSX(s.root, &buf); err != nil {
+		writeErr(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	name := "scan-origin-" + time.Now().Format("20060102-150405") + ".xlsx"
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
+	w.Header().Set("Cache-Control", "no-store")
+	w.Write(buf.Bytes())
 }
 
 func (s *Server) handlePlan(w http.ResponseWriter, r *http.Request) {

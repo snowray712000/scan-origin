@@ -1,10 +1,14 @@
 package dataset
 
 import (
+	"archive/zip"
+	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -275,5 +279,40 @@ func TestScanTeeth(t *testing.T) {
 	}
 	if e, err := ScanTeeth(t.TempDir()); err != nil || e.Teeth == nil || e.NoFDIList == nil {
 		t.Errorf("empty: %+v %v", e, err)
+	}
+}
+
+func TestExportXLSX(t *testing.T) {
+	root := t.TempDir()
+	write(t, filepath.Join(root, "IOS", "261022_1", "c1", "c1-35-crown_cad.stl"))
+	write(t, filepath.Join(root, "Die", "261022_1", "d1", "d1-Tooth_36.stl"))
+	write(t, filepath.Join(root, "261028_1", "p1", "a.stl"))
+	var buf bytes.Buffer
+	if err := ExportXLSX(root, &buf); err != nil {
+		t.Fatal(err)
+	}
+	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cases string
+	for _, f := range zr.File {
+		if f.Name == "xl/worksheets/sheet4.xml" {
+			rc, _ := f.Open()
+			b, _ := io.ReadAll(rc)
+			rc.Close()
+			cases = string(b)
+		}
+	}
+	for _, want := range []string{"<t>c1</t>", "<t>d1</t>", "<t>35</t>", "<t>36</t>"} {
+		if !strings.Contains(cases, want) {
+			t.Errorf("case sheet lacks %s: %s", want, cases)
+		}
+	}
+	if strings.Contains(cases, "p1") {
+		t.Error("pending case must not be listed")
+	}
+	if err := ExportXLSX(t.TempDir(), io.Discard); err != nil {
+		t.Errorf("empty root: %v", err)
 	}
 }
