@@ -84,6 +84,7 @@ func main() {
 	noOpen := flag.Bool("no-open", false, "do not open the browser on this machine")
 	here := flag.Bool("here", false, "use the current folder as the dataset and remember it (default: the folder used last time)")
 	showVersion := flag.Bool("version", false, "print the version and exit")
+	flag.BoolVar(showVersion, "v", false, "same as -version")
 	tree := flag.Bool("tree", false, "print the file structure (names only) of the folder, send it to the clipboard via OSC 52, and exit")
 	depth := flag.Int("depth", 0, "with -tree: list at most N levels (0 = all)")
 	sample := flag.Int("sample", 0, "with -tree: list at most N entries per folder (0 = all)")
@@ -91,7 +92,7 @@ func main() {
 	treeOut := flag.String("o", "", "with -tree: write the tree to this file instead of stdout")
 	noCopy := flag.Bool("no-copy", false, "with -tree: do not send the tree to the clipboard")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: scan-origin [-host ADDR] [-port N] [-no-open] [-here] [-version] [dataset資料夾，預設為上次使用的資料夾；第一次為目前資料夾]")
+		fmt.Fprintln(os.Stderr, "usage: scan-origin [-host ADDR] [-port N] [-no-open] [-here] [-v|-version] [dataset資料夾，預設為上次使用的資料夾；第一次為目前資料夾]")
 		fmt.Fprintln(os.Stderr, "       scan-origin -tree [-depth N] [-sample N] [-dirs-only] [-o FILE] [-no-copy] [資料夾]")
 		flag.PrintDefaults()
 	}
