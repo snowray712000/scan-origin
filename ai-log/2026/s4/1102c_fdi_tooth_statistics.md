@@ -5,7 +5,7 @@
 - Type: feature
 - Related logs: 1030b_dataset_sorting_implementation.md
 - Cross-project: none
-- Commit: uncommitted
+- Commit: b7428f6 (released as v1.2.3; official as 1.3.1)
 
 ## Goal / why
 The page only showed IOS / Die case counts. The user wanted to know which teeth the dataset contains: count per FDI number and a grand total.

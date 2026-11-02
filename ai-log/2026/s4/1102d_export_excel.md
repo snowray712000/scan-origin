@@ -5,7 +5,7 @@
 - Type: feature
 - Related logs: 1102c_fdi_tooth_statistics.md
 - Cross-project: none
-- Commit: uncommitted
+- Commit: bfd31b4 (released as v1.2.4; official as 1.3.1)
 
 ## Goal / why
 After 1.2.3 (FDI statistics, tested OK by the user) they wanted the numbers in Excel. Constraint: no third-party packages, so the workbook is written by hand with `archive/zip`. Released as 1.2.4.
