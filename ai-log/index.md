@@ -8,6 +8,7 @@ Rules for writing and reading logs: [README.md](README.md). Read this index firs
 
 | Log | Type | Summary | Areas / keywords | Files touched |
 |---|---|---|---|---|
+| [1102b_remember_last_dataset_dir](2026/s4/1102b_remember_last_dataset_dir.md) | feature | Dataset folder is remembered in the user config dir and reused from anywhere; priority arg > `-here` > remembered > cwd; notice when it differs from the cwd. | `-here`, `last.json`, UserConfigDir, cwd, remembered folder | `main.go`, `lastdir.go`, `lastdir_test.go` |
 | [1102a_tree_listing_flag](2026/s4/1102a_tree_listing_flag.md) | feature | `-tree` one-shot mode: prints the folder structure (names only), sends it to the clipboard via OSC 52 over ssh; `-depth`, `-sample`, `-dirs-only`, `-o`, `-no-copy`. | `-tree`, OSC 52, clipboard, ssh, file listing | `main.go`, `osc52.go`, `internal/dataset/tree.go` |
 | [1030c_release_1_1_1](2026/s4/1030c_release_1_1_1.md) | release | Version 0.1.0 -> 1.1.1; tag, GitHub release and npm publish procedure. | release, tag, npm publish, `@cadcam` | `internal/version/version.go` |
 | [1030b_dataset_sorting_implementation](2026/s4/1030b_dataset_sorting_implementation.md) | feature | Full implementation: Die/IOS classifier, scan statistics, plan/apply with flattening and a move log, token-guarded API, web UI. | `Tooth_XX.stl`, classify, flatten, plan, apply, `.scan-origin`, token, `0.0.0.0` | `main.go`, `internal/dataset/*`, `internal/server/*`, `web/*` |

@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -83,6 +82,7 @@ func main() {
 	host := flag.String("host", "0.0.0.0", "address to listen on (127.0.0.1 = this machine only)")
 	port := flag.Int("port", defaultPort, "port (if not given and busy, a free one is picked)")
 	noOpen := flag.Bool("no-open", false, "do not open the browser on this machine")
+	here := flag.Bool("here", false, "use the current folder as the dataset and remember it (default: the folder used last time)")
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	tree := flag.Bool("tree", false, "print the file structure (names only) of the folder, send it to the clipboard via OSC 52, and exit")
 	depth := flag.Int("depth", 0, "with -tree: list at most N levels (0 = all)")
@@ -91,7 +91,7 @@ func main() {
 	treeOut := flag.String("o", "", "with -tree: write the tree to this file instead of stdout")
 	noCopy := flag.Bool("no-copy", false, "with -tree: do not send the tree to the clipboard")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: scan-origin [-host ADDR] [-port N] [-no-open] [-version] [dataset資料夾，預設為目前資料夾]")
+		fmt.Fprintln(os.Stderr, "usage: scan-origin [-host ADDR] [-port N] [-no-open] [-here] [-version] [dataset資料夾，預設為上次使用的資料夾；第一次為目前資料夾]")
 		fmt.Fprintln(os.Stderr, "       scan-origin -tree [-depth N] [-sample N] [-dirs-only] [-o FILE] [-no-copy] [資料夾]")
 		flag.PrintDefaults()
 	}
@@ -99,20 +99,6 @@ func main() {
 	if *showVersion {
 		fmt.Println("scan-origin", version.Version)
 		return
-	}
-
-	dir := "."
-	if flag.NArg() > 0 {
-		dir = flag.Arg(0)
-	}
-	root, err := filepath.Abs(dir)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	if fi, err := os.Stat(root); err != nil || !fi.IsDir() {
-		fmt.Fprintln(os.Stderr, "不是資料夾:", root)
-		os.Exit(1)
 	}
 
 	portSet := false
@@ -128,6 +114,34 @@ func main() {
 		fmt.Fprintln(os.Stderr, "-depth / -sample / -dirs-only / -o / -no-copy 需搭配 -tree")
 		os.Exit(2)
 	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	lastFile, lastErr := lastDirFile()
+	remembered := ""
+	if lastErr == nil {
+		remembered = loadLastDir(lastFile)
+	}
+	choice, err := chooseDir(flag.Arg(0), *here, cwd, remembered)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+	root := choice.Dir
+	if fi, err := os.Stat(root); err != nil || !fi.IsDir() {
+		fmt.Fprintln(os.Stderr, "不是資料夾:", root)
+		os.Exit(1)
+	}
+	if choice.Warn != "" {
+		fmt.Fprintln(os.Stderr, choice.Warn)
+	}
+	if choice.Source == srcLast && !sameDir(root, cwd) {
+		fmt.Fprintf(os.Stderr, "使用上次的資料夾: %s\n  （目前資料夾是 %s；要改用目前資料夾請加 -here）\n", root, cwd)
+	}
+
 	if *tree {
 		if *depth < 0 || *sample < 0 {
 			fmt.Fprintln(os.Stderr, "-depth 與 -sample 不可為負數")
@@ -146,6 +160,11 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+	if lastErr == nil {
+		if err := saveLastDir(lastFile, root); err != nil {
+			fmt.Fprintln(os.Stderr, "無法記住這次的資料夾:", err)
+		}
 	}
 	_, p, _ := net.SplitHostPort(ln.Addr().String())
 	srv := server.New(root)

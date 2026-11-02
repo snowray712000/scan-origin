@@ -14,25 +14,28 @@ npm i -g @cadcam/scan-origin     # 需要 Node.js 16+，npm 會自動挑對應�
 
 ## 使用
 
-在 dataset 電腦的 dataset 資料夾下執行：
+在 dataset 電腦上執行：
 
 ```bash
-scan-origin                      # 以目前資料夾為 dataset
-scan-origin /path/to/dataset     # 或指定資料夾
+scan-origin                      # 第一次：以目前資料夾為 dataset；之後：不論在哪執行，都用上次的資料夾
+scan-origin -here                # 強制以目前資料夾為 dataset，並記住它
+scan-origin /path/to/dataset     # 或明確指定資料夾（同樣會被記住）
 ```
+
+選擇順序：命令列資料夾 > `-here` > 上次記住的資料夾 > 目前資料夾。每次啟動伺服器後會把實際使用的資料夾記在使用者設定資料夾的 `scan-origin/last.json`（Windows `%AppData%`、Linux `~/.config`、macOS `~/Library/Application Support`）。若用的是上次的資料夾、且和目前資料夾不同，啟動時會在 stderr 提醒；上次的資料夾已不存在則退回目前資料夾並警告。`-here` 不能和資料夾參數同時使用。`-tree` 用同一套規則找資料夾，但不會改寫記錄。
 
 啟動後會印出含 token 的網址，用另一台電腦的瀏覽器開啟（例如 `http://192.168.1.20:8765/?t=…`）：
 
 - **Dataset 目前狀態**：已分類總計、IOS 數、Die 數、待處理數，以及每個上傳日期的 IOS／Die 數。
 - **整理待處理的上傳**：先按「預覽整理結果」看每個 case 會被判成 IOS 或 Die，確認後才「執行」。
 
-選項：`-host`（預設 `0.0.0.0`；只給本機用請設 `127.0.0.1`）、`-port`（預設 8765，被占用且未指定時改用隨機埠）、`-no-open`（不在本機開瀏覽器）、`-version`。結束用 Ctrl+C。
+選項：`-host`（預設 `0.0.0.0`；只給本機用請設 `127.0.0.1`）、`-port`（預設 8765，被占用且未指定時改用隨機埠）、`-no-open`（不在本機開瀏覽器）、`-here`（見上）、`-version`。結束用 Ctrl+C。
 
 > 預設監聽所有網卡，Windows 第一次執行可能跳防火牆提示。首頁與 API 都需要啟動時產生的隨機 token，**知道含 token 的網址就能整理這個資料夾**，請勿外流；每次啟動 token 都會改變。沒有 TLS，請只在可信任的內網使用。
 
 ### 列出檔案結構（`-tree`）
 
-要把 dataset 的真實路徑清單貼給 AI 或拿來開發時，ssh 到 dataset 那台，在 dataset 資料夾下執行：
+要把 dataset 的真實路徑清單貼給 AI 或拿來開發時，ssh 到 dataset 那台執行（資料夾依上面的規則決定，要列目前資料夾就加 `-here`）：
 
 ```bash
 scan-origin -tree                      # 列出目前資料夾（只有名稱，沒有內容），並送到剪貼簿
