@@ -64,6 +64,40 @@ function renderState(s) {
   $('previewBtn').disabled = st.pendingBatches.length === 0;
 }
 
+function renderTeeth(t) {
+  const tb = $('teeth').tBodies[0];
+  tb.replaceChildren();
+  for (const x of t.teeth) {
+    const tr = el('tr');
+    tr.append(el('td', '', x.fdi), el('td', 'num', String(x.ios)), el('td', 'num', String(x.die)), el('td', 'num', String(x.ios + x.die)));
+    tb.append(tr);
+  }
+  const tf = $('teeth').tFoot;
+  tf.replaceChildren();
+  const tr = el('tr', 'total');
+  tr.append(el('td', '', '總量'), el('td', 'num', String(t.iosTeeth)), el('td', 'num', String(t.dieTeeth)), el('td', 'num', String(t.iosTeeth + t.dieTeeth)));
+  tf.append(tr);
+  $('teeth').hidden = t.teeth.length === 0;
+  $('teethNote').textContent = t.teeth.length
+    ? '每個 case 的每個牙位算一次（IOS 看 …-XX-crown_cad.stl，Die 看 …-Tooth_XX.stl）；共 ' +
+      (t.iosCases + t.dieCases) + ' 個 case。'
+    : '還沒有整理好的資料。';
+  const nf = $('noFdi');
+  nf.hidden = t.noFdi === 0;
+  nf.textContent = t.noFdi
+    ? '有 ' + t.noFdi + ' 個 case 找不到牙位檔，未計入：' + t.noFdiList.join('、') + (t.noFdi > t.noFdiList.length ? '…' : '')
+    : '';
+}
+
+async function refreshTeeth() {
+  $('teethNote').textContent = '統計中…';
+  try {
+    renderTeeth(await api('GET', '/api/teeth'));
+  } catch (e) {
+    $('teethNote').textContent = '牙位統計失敗：' + String(e.message || e);
+  }
+}
+
 async function refresh() {
   try {
     showError(null);
@@ -71,6 +105,7 @@ async function refresh() {
   } catch (e) {
     showError(e);
   }
+  refreshTeeth();
 }
 
 function note(it) {

@@ -83,3 +83,4 @@ button:hover:not(:disabled) { border-color: var(--accent); }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 button:disabled { opacity: 0.5; cursor: default; }
 code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+tfoot .total td { font-weight: 600; border-top: 2px solid var(--line); }

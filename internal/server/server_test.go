@@ -61,6 +61,17 @@ func TestAPIGuards(t *testing.T) {
 	}
 }
 
+func TestTeethNeedsToken(t *testing.T) {
+	s, h := newTest(t)
+	if w := do(h, "GET", "/api/teeth", nil); w.Code != 403 {
+		t.Errorf("no token: %d", w.Code)
+	}
+	ok := map[string]string{"X-Token": s.Token(), "Content-Type": "application/json"}
+	if w := do(h, "GET", "/api/teeth", ok); w.Code != 200 || !strings.Contains(w.Body.String(), `"teeth":[]`) {
+		t.Errorf("teeth: %d %s", w.Code, w.Body.String())
+	}
+}
+
 func TestPlanThenApply(t *testing.T) {
 	s, h := newTest(t)
 	ok := map[string]string{"X-Token": s.Token(), "Content-Type": "application/json", "Origin": "http://192.168.1.5:8765"}

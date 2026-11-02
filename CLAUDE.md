@@ -29,6 +29,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `{case}/{case}/{files}`（可多層）會先展平成 `{case}/{files}`；分類看展平後的檔案。
 - 建置：`go build -o scan-origin .`；測試：`go test ./...`；執行：`./scan-origin [-host ADDR] [-port N] [-no-open] [-here] [dataset資料夾]`（預設埠 8765，被占用且未指定 `-port` 時改用隨機埠）。
 - **dataset 資料夾的決定**（`lastdir.go`）：命令列資料夾 > `-here` > 上次記住的 > 目前資料夾。記錄在 `os.UserConfigDir()/scan-origin/last.json`（`{dir, updated}`，先寫 `.tmp` 再 rename），只在伺服器成功監聽後寫入；`-tree` 讀但不寫。用上次資料夾且與目前不同時於 stderr 提醒；上次資料夾不存在則退回 cwd 並警告；`-here` 與資料夾參數並用 → exit 2。因為工具會搬動資料夾，這個提醒與首頁顯示的 dataset 路徑不可拿掉。測試不要動真實的設定資料夾（`chooseDir`／`loadLastDir`／`saveLastDir` 都吃參數，測試用 `t.TempDir()`）。
+- **牙位統計**（`internal/dataset/teeth.go`，`GET /api/teeth`，純讀取）：只算已分類的 case；IOS 取 `…-XX-crown_cad.stl`（`_transform` 不算）、Die 取 `…-Tooth_XX.stl`（Die 內的 crown_cad 不看），regex 與 `FDIs()` 在 `classify.go`。一個 case 每個不同 FDI 算一次。因為每個 case 要列一次檔案，所以與便宜的 `/api/state` 分開，前端在 state 之後才請求。
 - `-tree`：一次性指令（不啟動伺服器），列出資料夾結構（只有名稱）並用 OSC 52 送到本機終端機的剪貼簿，供 ssh 時貼給 AI；`-depth`／`-sample`／`-dirs-only`／`-o`／`-no-copy` 只能搭配它。純讀取。實作在 `internal/dataset/tree.go` 與 `osc52.go`。
 - 發行：`go run ./tools/release`（壓縮檔 + SHA256SUMS）、`go run ./tools/npmpack`（`@cadcam/scan-origin`，optionalDependencies 結構）；版本在 `internal/version`。工具不上傳，`npm publish` 由使用者手動執行。tools 只用標準庫。release 需要至少一個 commit，且追蹤檔無未 commit 的改動。
 - 目錄：`internal/dataset`（分類／掃描統計／預覽計畫／Apply）、`internal/server`（HTTP API + token）、`internal/version`、`web/`（前端，embed）、`tools/`、`doc/`（需求文件）。

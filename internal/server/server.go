@@ -44,6 +44,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /style.css", http.FileServerFS(web.FS))
 
 	mux.HandleFunc("GET /api/state", s.api(s.handleState))
+	mux.HandleFunc("GET /api/teeth", s.api(s.handleTeeth))
 	mux.HandleFunc("POST /api/plan", s.api(s.handlePlan))
 	mux.HandleFunc("POST /api/apply", s.api(s.handleApply))
 	return s.guard(mux)
@@ -118,6 +119,17 @@ func (s *Server) handleState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"root": s.root, "version": version.Version, "stats": st})
+}
+
+// handleTeeth lists the files of every case, so it is separate from the cheap
+// /api/state and the page asks for it afterwards.
+func (s *Server) handleTeeth(w http.ResponseWriter, r *http.Request) {
+	t, err := dataset.ScanTeeth(s.root)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, t)
 }
 
 func (s *Server) handlePlan(w http.ResponseWriter, r *http.Request) {

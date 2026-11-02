@@ -231,3 +231,49 @@ func TestApplyNeverOverwrites(t *testing.T) {
 		t.Error("pending case should stay put")
 	}
 }
+
+func TestFDIs(t *testing.T) {
+	ios := FDIs(KindIOS, []string{
+		"A-35-crown_cad.stl", "A-35-crown_cad_transform.stl", "A-Tooth_36.stl", "A-36-crown_cad.STL", "A-09-crown_cad.stl",
+	})
+	if !reflect.DeepEqual(ios, []string{"35", "36"}) {
+		t.Errorf("ios: %v", ios)
+	}
+	die := FDIs(KindDie, []string{"A-36-crown_cad.stl", "A-Tooth_36.stl", "A-Tooth_26.stl", "A-Tooth_99.stl"})
+	if !reflect.DeepEqual(die, []string{"26", "36"}) {
+		t.Errorf("die: %v", die)
+	}
+	if got := FDIs(KindIOS, []string{"a.stl"}); len(got) != 0 {
+		t.Errorf("none: %v", got)
+	}
+}
+
+func TestScanTeeth(t *testing.T) {
+	root := t.TempDir()
+	write(t, filepath.Join(root, "IOS", "261022_2", "c1", "c1-35-crown_cad.stl"))
+	write(t, filepath.Join(root, "IOS", "261022_2", "c1", "c1-35-crown_cad_transform.stl"))
+	write(t, filepath.Join(root, "IOS", "261022_2", "c2", "c2-35-crown_cad.stl"))
+	write(t, filepath.Join(root, "IOS", "261022_2", "c2", "c2-36-crown_cad.stl")) // bridge
+	write(t, filepath.Join(root, "IOS", "261022_2", "c3", "a.stl"))               // no tooth
+	write(t, filepath.Join(root, "Die", "261022_1", "d1", "d1-36-crown_cad.stl"))
+	write(t, filepath.Join(root, "Die", "261022_1", "d1", "d1-Tooth_36.stl"))
+	write(t, filepath.Join(root, "261028_1", "p1", "p1-Tooth_11.stl")) // pending, not counted
+
+	got, err := ScanTeeth(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []ToothStat{{"35", 2, 0}, {"36", 1, 1}}
+	if !reflect.DeepEqual(got.Teeth, want) {
+		t.Errorf("teeth: %+v", got.Teeth)
+	}
+	if got.IOSTeeth != 3 || got.DieTeeth != 1 || got.IOSCases != 3 || got.DieCases != 1 || got.NoFDI != 1 {
+		t.Errorf("totals: %+v", got)
+	}
+	if len(got.NoFDIList) != 1 || got.NoFDIList[0] != "IOS/261022_2/c3" {
+		t.Errorf("noFdiList: %v", got.NoFDIList)
+	}
+	if e, err := ScanTeeth(t.TempDir()); err != nil || e.Teeth == nil || e.NoFDIList == nil {
+		t.Errorf("empty: %+v %v", e, err)
+	}
+}
