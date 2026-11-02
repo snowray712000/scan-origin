@@ -30,6 +30,22 @@ scan-origin /path/to/dataset     # 或指定資料夾
 
 > 預設監聽所有網卡，Windows 第一次執行可能跳防火牆提示。首頁與 API 都需要啟動時產生的隨機 token，**知道含 token 的網址就能整理這個資料夾**，請勿外流；每次啟動 token 都會改變。沒有 TLS，請只在可信任的內網使用。
 
+### 列出檔案結構（`-tree`）
+
+要把 dataset 的真實路徑清單貼給 AI 或拿來開發時，ssh 到 dataset 那台，在 dataset 資料夾下執行：
+
+```bash
+scan-origin -tree                      # 列出目前資料夾（只有名稱，沒有內容），並送到剪貼簿
+scan-origin -tree -depth 3 -sample 3   # 精簡版：最多 3 層、每個資料夾最多 3 項
+scan-origin -tree -o tree.txt          # 存成檔案（再用 scp 取回）
+```
+
+- 一次性指令：印完就結束，不啟動伺服器，也不會動到 dataset。
+- 輸出是縮排樹狀，資料夾以 `/` 結尾；`.scan-origin/` 不列出。被 `-sample` 或 `-depth` 截斷處會標 `... (+M more)` 或 ` ...`，結尾的統計也會註明「truncated」。
+- 選項（只能搭配 `-tree`）：`-depth N`（只列 N 層）、`-sample N`（每個資料夾最多 N 項）、`-dirs-only`（只列資料夾）、`-o 檔案`（寫到檔案）、`-no-copy`（不送剪貼簿）。
+- **剪貼簿**用 OSC 52：由你**本機**的終端機把內容放進本機剪貼簿，所以 ssh 時也能用。Windows Terminal、iTerm2、kitty、WezTerm 支援；tmux 裡要設 `set -g set-clipboard on`；GNU screen 不支援。只有輸出到終端機時才會送（`> file` 不會混入控制碼）。
+- 清單太大（約 70 KB 以上）時為了避免被終端機靜默丟棄，不會送剪貼簿並會提示；請加 `-depth`／`-sample`／`-dirs-only` 縮小，或改用 `-o`。貼上是空的就是終端機不支援，同樣改用 `-o`。
+
 ## 資料夾結構與判斷準則
 
 ```
